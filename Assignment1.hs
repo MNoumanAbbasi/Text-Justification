@@ -24,7 +24,6 @@ line2str :: [Token] -> String
 line2str = \line ->
     unwords (map token2word line)
 
--- main = putStr $ show $ line2str (str2line "He who controls the past controls the future.")
 -- | Computes the length of a token
 tokLen :: Token -> Int
 tokLen = \token ->
@@ -58,7 +57,6 @@ mergers = \list ->
         _ -> []
 -- main = putStr $ show $ mergers ["co","nt","ro","ls"]
 
-enHyp = [("controls",["co","nt","ro","ls"]), ("future",["fu","tu","re"]),("present",["pre","se","nt"])]
 -- | Find the string in a list of pairs of word and its breakups
 findHyp4Word :: [(String, [String])] -> String -> [String]
 findHyp4Word = \list -> \str ->
@@ -113,7 +111,7 @@ insertBlanks :: Int -> [Token] -> [[Token]]
 insertBlanks = \n -> \line ->
     case n of
         _ | (length line) == 1 -> [line]
-        0 -> [line]
+        _ | n<=0 -> [line]
         1 -> removeDups.removeUnnBlanks $ insertions Blank line
         _ -> removeDups.removeUnnBlanks $ concat ((map (insertions Blank)) (insertBlanks (n-1) line))
 -- main = putStr $ show $ insertBlanks 2 [Word "He",Word "who",Word "controls"]
@@ -163,10 +161,9 @@ lineBadness :: Costs -> [Token] -> Double
 lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
     c1*(blankCost line) + c2*(blankProxCost line) + c3*(blankUnevenCost line) + c4*(hypCost line)
 
-defaultCosts = Costs 1.0 1.0 1.0 1.0
--- main = putStr $ show $ bestLineBreak defaultCosts enHyp 19 badLine
--- main = putStr $ show $ lineBadness defaultCosts badLine
--- main = putStr $ show $ (blankCost badLine, blankProxCost badLine, blankUnevenCost badLine, hypCost badLine)
+-- badLine1 = [Word "He",Blank,Blank,Word "who",Word "control"]
+-- main = putStr $ show $ lineBadness defaultCosts badLine1
+-- main = putStr $ show $ (blankCost badLine1, blankProxCost badLine1, blankUnevenCost badLine1, hypCost badLine1)
 
 -- | Helper function to convert a list of lines to list of tuples of lines
 list2tuples :: [[Token]] -> [Token] -> [([Token],[Token])]
@@ -175,7 +172,7 @@ list2tuples = \list -> \line -> [(a,line) | a <- list]
 addBlanks :: [([Token],[Token])] -> Int -> [([Token],[Token])]
 addBlanks = \pairOfLines -> \w ->
     case pairOfLines of
-        [(a,b)] -> list2tuples (insertBlanks (w - lineLen a) a) b
+        [(a,b)] -> list2tuples (insertBlanks ((w-1) - lineLen a) a) b
         (a,b):xs | (lineLen a) == w -> [(a,b)] ++ addBlanks xs w
         (a,b):xs -> (list2tuples (insertBlanks (w - lineLen a) a) b) ++ addBlanks xs w
 
@@ -193,31 +190,44 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
 
--- text1 = "controls the past controls the future. He who controls the present controls the past."
--- fut = "future."
+-- line2 = [Word "sent",Word "controls",Word "the",Word "past."]
+-- line2 = str2line text
+-- -- main = putStr $ show $ bestLineBreak defaultCosts enHyp 15 line2
+-- -- text1 = "controls the past controls the future. He who controls the present controls the past."
+-- -- fut = "future."
 -- w = 15
--- lin = str2line text
--- lineBreakups = lineBreaks enHyp w lin
+-- -- lin = str2line text
+-- lineBreakups = lineBreaks enHyp w [Word "the",Word "past",Word "controls",Word "the",Word "future.",Word "He",Word "who",Word "controls",Word "the",Word "present",Word "controls",Word "the",Word "past."]
 -- allLines = addBlanks lineBreakups w
 -- allCosts = map ((lineBadness defaultCosts).fst) allLines
--- -- main = putStr $ show $ lineBreakups
+-- -- main = putStr $ show $ allLines
 
--- | Justifies the line based on HypMap and given width
-justifyLine :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
-justifyLine = \c -> \hypMap -> \w -> \line ->
+-- | Recursive helper function for justifyLine
+justifyLineRec :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
+justifyLineRec = \c -> \hypMap -> \w -> \line ->
     case bestLineBreak c hypMap w line of
         Just (fstLine, remLine) ->
             case remLine of
-                [] -> [fstLine]
-                _ | (lineLen remLine) <= w -> [remLine]         -- for last line
-                _ -> [fstLine] ++ (justifyLine c hypMap w remLine)
-        Nothing -> [line]                                           -- TODO If not justifible, return complete list
+                -- [] -> [fstLine]
+                _ | (lineLen remLine) <= w -> [fstLine] ++ [remLine]         -- for last line
+                _ -> [fstLine] ++ (justifyLineRec c hypMap w remLine)
+        Nothing -> []
+
+-- | Justifies the line based on HypMap and given width. Returns complete list if not justifible
+justifyLine :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
+justifyLine = \c -> \hypMap -> \w -> \line ->
+    case filter (>w) (map tokLen line) of
+        [] -> justifyLineRec c hypMap w line
+        _ -> [line]       -- return list if there is token with width greater than w therefore unjustifible
 
 -- | Justifies a string and returns a list of strings
 justifyText :: Costs -> [(String, [String])] -> Int -> String -> [String]
 justifyText = \c -> \hypMap -> \w -> \text ->
     map line2str (justifyLine c hypMap w (str2line text))
-            
-text = "He who controls the past controls the future. He who controls the present controls the past."
-main = putStr $ show $ justifyText defaultCosts enHyp 15 text
 
+
+enHyp = [("controls",["co","nt","ro","ls"]), ("future",["fu","tu","re"]),("present",["pre","se","nt"])]
+defaultCosts = Costs 1.0 1.0 1.0 1.0
+text = "He who controls the past controls the future. He who controls the present controls the past."
+-- main = putStr $ show $ justifyLine defaultCosts enHyp 15 (str2line text)
+main = putStr $ unlines $ justifyText defaultCosts enHyp 15 text
