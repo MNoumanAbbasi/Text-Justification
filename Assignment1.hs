@@ -87,7 +87,7 @@ lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
 lineBreaks = \hypMap -> \w -> \line ->
     let x = breakLine w line
     in filter ((<=w).lineLen.fst) (x:(map (line2Hyph x) (hyphenate enHyp (last line))))
-main = putStr $ show $ lineBreaks enHyp 12 [Word "He",Word "who",Word "controls"]
+-- main = putStr $ show $ lineBreaks enHyp 12 [Word "He",Word "who",Word "future."]
 
 -- | Insertion helper function (starts is an accumulator)
 insertionsHelper :: a -> [a] -> [a] -> [[a]]
@@ -113,11 +113,11 @@ removeDups = map head.group
 insertBlanks :: Int -> [Token] -> [[Token]]
 insertBlanks = \n -> \line ->
     case n of
+        _ | (length line) == 1 -> [line]
         0 -> [line]
         1 -> removeDups.removeUnnBlanks $ insertions Blank line
         _ -> removeDups.removeUnnBlanks $ concat ((map (insertions Blank)) (insertBlanks (n-1) line))
 -- main = putStr $ show $ insertBlanks 2 [Word "He",Word "who",Word "controls"]
-
 
 -- | Computes the distances between inserted blanks, counted in number of inbetween token
 blankDistances :: [Token] -> [Int]
@@ -176,7 +176,10 @@ addBlanks :: [([Token],[Token])] -> Int -> [([Token],[Token])]
 addBlanks = \pairOfLines -> \w ->
     case pairOfLines of
         [(a,b)] -> list2tuples (insertBlanks (w - lineLen a) a) b
+        (a,b):xs | (lineLen a) == w -> [(a,b)] ++ addBlanks xs w
         (a,b):xs -> (list2tuples (insertBlanks (w - lineLen a) a) b) ++ addBlanks xs w
+
+-- main = putStr $ show $ addBlanks (lineBreaks enHyp 8 (str2line "Hewho")) 8
 
 -- -- | Find the index of minimum element in list
 minIndex :: [Double] -> Maybe Int
@@ -191,18 +194,28 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
     in case minIndex allCosts of
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
-        
--- main = putStr $ show $ bestLineBreak defaultCosts enHyp 8 [Word"He",Word"who",Word"controls"]
+
+text1 = "controls the past controls the future. He who controls the present controls the past."
+fut = "future."
+w = 8
+lin = str2line fut
+lineBreakups = lineBreaks enHyp w lin
+allLines = addBlanks lineBreakups w
+allCosts = map ((lineBadness defaultCosts).fst) allLines
+-- main = putStr $ show $ allLines
+
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp w [Word"He",Word"who",Word"controls"]
 
 -- | Justifies the line based on HypMap and given width
 justifyLine :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
 justifyLine = \c -> \hypMap -> \w -> \line ->
     case bestLineBreak c hypMap w line of
-        Just (fstLine, remLine) -> [fstLine] ++ (justifyLine c hypMap w remLine)
-        Nothing -> []
+        Just (fstLine, remLine) ->
+            case remLine of
+                [] -> [fstLine]
+                _ -> [fstLine] ++ (justifyLine c hypMap w remLine)
+        Nothing -> [line]                                           -- TODO If not justifible, return complete list
 
-text = "future. He who controls the present controls the past."
-fut = "future."
--- main = putStr $ show $ justifyLine defaultCosts enHyp 8 (str2line text)
--- main = putStr $ show $ bestLineBreak defaultCosts enHyp 8 (str2line text)
--- main = putStr $ show $ lineLen (str2line fut)
+text = "He who controls the past controls the futuress. He who controls the present controls the past."
+-- fut = "future."
+main = putStr $ show $ justifyLine defaultCosts enHyp 8 (str2line text)
