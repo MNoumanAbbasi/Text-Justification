@@ -156,7 +156,8 @@ blankProxCost = \line ->
     case (length.filter (==Blank) $ line) of
         0 -> 0.0              -- in case of 0 blanks
         _ -> fromIntegral (length line) - (avg (map fromIntegral (blankDistances line)))
-
+-- badLine = [Word "He",Blank,Blank,Word "who",Blank,Blank,HypWord "control"]
+-- main = putStr $ show $ (map fromIntegral (blankDistances badLine))
 -- | Computes the cost of having blanks spread unevenly
 blankUnevenCost :: [Token] -> Double
 blankUnevenCost xs = var (map fromIntegral (blankDistances xs))
@@ -172,10 +173,10 @@ lineBadness :: Costs -> [Token] -> Double
 lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
     c1*(blankCost line) + c2*(blankProxCost line) + c3*(blankUnevenCost line) + c4*(hypCost line)
 
--- line = [Word "He",Blank,Word "who",Word "controls"]
 defaultCosts = Costs 1.0 1.0 1.0 1.0
--- main = putStr $ show $ lineBadness defaultCosts line
--- main = putStr $ show $ (blankCost line, blankProxCost line, blankUnevenCost line, hypCost line)
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp 19 badLine
+-- main = putStr $ show $ lineBadness defaultCosts badLine
+-- main = putStr $ show $ (blankCost badLine, blankProxCost badLine, blankUnevenCost badLine, hypCost badLine)
 
 -- | Helper function to convert a list of lines to list of tuples of lines
 list2tuples :: [[Token]] -> [Token] -> [([Token],[Token])]
@@ -222,17 +223,16 @@ justifyLine = \c -> \hypMap -> \w -> \line ->
         Just (fstLine, remLine) ->
             case remLine of
                 [] -> [fstLine]
+                _ | (lineLen remLine) <= w -> [remLine]         -- for last line
                 _ -> [fstLine] ++ (justifyLine c hypMap w remLine)
         Nothing -> [line]                                           -- TODO If not justifible, return complete list
 
 text = "He who controls the past controls the future. He who controls the present controls the past."
--- fut = "future."
--- main = putStr $ show $ justifyLine defaultCosts enHyp 15 (str2line text)
 
 -- | Justifies a string and returns a list of strings
 justifyText :: Costs -> [(String, [String])] -> Int -> String -> [String]
 justifyText = \c -> \hypMap -> \w -> \text ->
     map line2str (justifyLine c hypMap w (str2line text))
 
-main = putStr $ show $ justifyText defaultCosts enHyp 15 text
+-- main = putStr $ show $ justifyText defaultCosts enHyp 15 text
 
