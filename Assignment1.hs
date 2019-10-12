@@ -83,11 +83,20 @@ line2Hyph :: ([Token], [Token]) -> (Token, Token) -> ([Token], [Token])
 line2Hyph = \(line1 , line2) -> \(hyp, word) -> (line1 ++ [hyp], [word])
 
 -- | Breaks a line into its hyphenated verison
+-- lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
+-- lineBreaks = \hypMap -> \w -> \line ->
+--     let x = breakLine w line
+--     in filter ((<=w).lineLen.fst) (x:(map (line2Hyph x) (hyphenate enHyp (last line))))
+
+-- | Breaks a line into its hyphenated verison
 lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
 lineBreaks = \hypMap -> \w -> \line ->
-    let x = breakLine w line
-    in filter ((<=w).lineLen.fst) (x:(map (line2Hyph x) (hyphenate enHyp (last line))))
--- main = putStr $ show $ lineBreaks enHyp 12 [Word "He",Word "who",Word "future."]
+    case breakLine w line of
+        (x,[]) -> [(x,[])]
+        (x,y:ys) -> let temp = [(x++[a], [b]++ys) | (a,b) <- (hyphenate enHyp y)]
+                 in filter ((<=w).lineLen.fst) ([(x,y:ys)]++temp)
+
+-- main = putStr $ show $ lineBreaks enHyp 12 [Word"He",Word"who",Word"controls",Word"the"]
 
 -- | Insertion helper function (starts is an accumulator)
 insertionsHelper :: a -> [a] -> [a] -> [[a]]
@@ -197,14 +206,14 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
 
 text1 = "controls the past controls the future. He who controls the present controls the past."
 fut = "future."
-w = 8
-lin = str2line fut
+w = 15
+lin = str2line text
 lineBreakups = lineBreaks enHyp w lin
 allLines = addBlanks lineBreakups w
 allCosts = map ((lineBadness defaultCosts).fst) allLines
--- main = putStr $ show $ allLines
+-- main = putStr $ show $ lineBreakups
 
--- main = putStr $ show $ bestLineBreak defaultCosts enHyp w [Word"He",Word"who",Word"controls"]
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp 12 (str2line text)
 
 -- | Justifies the line based on HypMap and given width
 justifyLine :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
@@ -216,6 +225,14 @@ justifyLine = \c -> \hypMap -> \w -> \line ->
                 _ -> [fstLine] ++ (justifyLine c hypMap w remLine)
         Nothing -> [line]                                           -- TODO If not justifible, return complete list
 
-text = "He who controls the past controls the futuress. He who controls the present controls the past."
+text = "He who controls the past controls the future. He who controls the present controls the past."
 -- fut = "future."
-main = putStr $ show $ justifyLine defaultCosts enHyp 8 (str2line text)
+-- main = putStr $ show $ justifyLine defaultCosts enHyp 15 (str2line text)
+
+-- | Justifies a string and returns a list of strings
+justifyText :: Costs -> [(String, [String])] -> Int -> String -> [String]
+justifyText = \c -> \hypMap -> \w -> \text ->
+    map line2str (justifyLine c hypMap w (str2line text))
+
+main = putStr $ show $ justifyText defaultCosts enHyp 15 text
+
