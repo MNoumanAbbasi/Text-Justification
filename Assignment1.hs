@@ -164,38 +164,32 @@ lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
     c1*(blankCost line) + c2*(blankProxCost line) + c3*(blankUnevenCost line) + c4*(hypCost line)
 
 line = [Word "He",Blank,Word "who",Word "controls"]
-cost = Costs 1.0 1.0 1.0 1.0
--- main = putStr $ show $ lineBadness cost line
+defaultCosts = Costs 1.0 1.0 1.0 1.0
+-- main = putStr $ show $ lineBadness defaultCosts line
 -- main = putStr $ show $ (blankCost line, blankProxCost line, blankUnevenCost line, hypCost line)
 
+-- | Helper function to convert a list of lines to list of tuples of lines
+list2tuples :: [[Token]] -> [Token] -> [([Token],[Token])]
+list2tuples = \list -> \line -> [(a,line) | a <- list]
 -- | Inserts blanks by first computing no. of blanks required and then inserting them
-addBlanks :: [[Token]] -> Int -> [[Token]]
-addBlanks = \listOfLines -> \w ->
-    case listOfLines of
-        [x] -> (insertBlanks (w - lineLen x) x)
-        x:xs -> (insertBlanks (w - lineLen x) x) ++ addBlanks xs w
+addBlanks :: [([Token],[Token])] -> Int -> [([Token],[Token])]
+addBlanks = \pairOfLines -> \w ->
+    case pairOfLines of
+        [(a,b)] -> list2tuples (insertBlanks (w - lineLen a) a) b
+        (a,b):xs -> (list2tuples (insertBlanks (w - lineLen a) a) b) ++ addBlanks xs w
 
 -- -- | Find the index of minimum element in list
 minIndex :: [Double] -> Maybe Int
 minIndex xs = elemIndex (minimum xs) xs
 
 -- -- | Computes the best line break given the costs, hyphenation map, and the maximum line width
-bestLineBreak :: Costs -> [(String, [String])] -> Int -> [Token] -> Maybe [Token]
+bestLineBreak :: Costs -> [(String, [String])] -> Int -> [Token] -> Maybe ([Token],[Token])
 bestLineBreak = \c -> \hypMap -> \w -> \line ->
     let lineBreakups = lineBreaks hypMap w line
-        firsts = map fst lineBreakups
-        allLines = addBlanks firsts w
-        allCosts = map (lineBadness c) allLines
+        allLines = addBlanks lineBreakups w
+        allCosts = map ((lineBadness c).fst) allLines
     in case minIndex allCosts of
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
-
-line2 = [Word"He",Word"who",Word"controls"]
-lineBreakups = (lineBreaks enHyp 12 line2)
-firsts = map fst lineBreakups
--- main = putStr $ show $ map (lineBadness cost) (addBlanks firsts 12)
-main = putStr $ show $ bestLineBreak cost enHyp 12 line2
--- main = putStr $ show $ (map (lineBadness cost) firsts)
--- main = putStr $ show $ zip (zipWith (+) (map fromIntegral (map ((12-).lineLen) firsts)) (map (lineBadness cost) firsts)) firsts
-
--- main = putStr $ show $ map ((lineBadness cost).fst) lineWithBlanks
+        
+main = putStr $ show $ bestLineBreak defaultCosts enHyp 12 [Word"He",Word"who",Word"controls"]
