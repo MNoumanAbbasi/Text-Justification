@@ -58,7 +58,7 @@ mergers = \list ->
         _ -> []
 -- main = putStr $ show $ mergers ["co","nt","ro","ls"]
 
-enHypList = [("controls",["co","nt","ro","ls"]), ("future",["fu","tu","re"]),("present",["pre","se","nt"])]
+enHyp = [("controls",["co","nt","ro","ls"]), ("future",["fu","tu","re"]),("present",["pre","se","nt"])]
 -- | Find the string in a list of pairs of word and its breakups
 findHyp4Word :: [(String, [String])] -> String -> [String]
 findHyp4Word = \list -> \str ->
@@ -73,10 +73,10 @@ word2HypToken = \punc -> \(str1, str2) -> (HypWord str1, Word (str2 ++ punc))
 
 -- | Converts a Word token into its hyphenated pair based on a list passed (Also handles trailing punctuations)
 hyphenate :: [(String, [String])] -> Token -> [(Token, Token)]
-hyphenate = \enHyp -> \token ->
+hyphenate = \hypMap -> \token ->
     case token of       -- first case is if trailing punctuation present and second case is otherwise
-        Word w | (not.isAlpha) (last w) -> map (word2HypToken [last w]) (mergers (findHyp4Word enHyp (init w)))
-        Word w -> map (word2HypToken "") (mergers (findHyp4Word enHyp w))
+        Word w | (not.isAlpha) (last w) -> map (word2HypToken [last w]) (mergers (findHyp4Word hypMap (init w)))
+        Word w -> map (word2HypToken "") (mergers (findHyp4Word hypMap w))
 
 -- | Merge line and its hyphenated form (Used as helper functions in lineBreaks)
 line2Hyph :: ([Token], [Token]) -> (Token, Token) -> ([Token], [Token])
@@ -84,10 +84,10 @@ line2Hyph = \(line1 , line2) -> \(hyp, word) -> (line1 ++ [hyp], [word])
 
 -- | Breaks a line into its hyphenated verison
 lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
-lineBreaks = \enHyp -> \w -> \line ->
+lineBreaks = \hypMap -> \w -> \line ->
     let x = breakLine w line
     in filter ((<=w).lineLen.fst) (x:(map (line2Hyph x) (hyphenate enHyp (last line))))
--- main = putStr $ show $ lineBreaks enHypList 6 [Word "He",Word "who",Word "controls"]
+-- main = putStr $ show $ lineBreaks enHyp 12 [Word "He",Word "who",Word "controls"]
 
 -- | Insertion helper function (starts is an accumulator)
 insertionsHelper :: a -> [a] -> [a] -> [[a]]
@@ -113,6 +113,7 @@ removeDups = map head.group
 insertBlanks :: Int -> [Token] -> [[Token]]
 insertBlanks = \n -> \line ->
     case n of
+        0 -> [line]
         1 -> removeDups.removeUnnBlanks $ insertions Blank line
         _ -> removeDups.removeUnnBlanks $ concat ((map (insertions Blank)) (insertBlanks (n-1) line))
 -- main = putStr $ show $ insertBlanks 2 [Word "He",Word "who",Word "controls"]
@@ -165,4 +166,36 @@ lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
 line = [Word "He",Blank,Word "who",Word "controls"]
 cost = Costs 1.0 1.0 1.0 1.0
 -- main = putStr $ show $ lineBadness cost line
-main = putStr $ show $ (blankCost line, blankProxCost line, blankUnevenCost line, hypCost line)
+-- main = putStr $ show $ (blankCost line, blankProxCost line, blankUnevenCost line, hypCost line)
+
+-- | Inserts blanks by first computing no. of blanks required and then inserting them
+addBlanks :: [[Token]] -> Int -> [[Token]]
+addBlanks = \listOfLines -> \w ->
+    case listOfLines of
+        [x] -> (insertBlanks (w - lineLen x) x)
+        x:xs -> (insertBlanks (w - lineLen x) x) ++ addBlanks xs w
+
+-- -- | Find the index of minimum element in list
+minIndex :: [Double] -> Maybe Int
+minIndex xs = elemIndex (minimum xs) xs
+
+-- -- | Computes the best line break given the costs, hyphenation map, and the maximum line width
+bestLineBreak :: Costs -> [(String, [String])] -> Int -> [Token] -> Maybe [Token]
+bestLineBreak = \c -> \hypMap -> \w -> \line ->
+    let lineBreakups = lineBreaks hypMap w line
+        firsts = map fst lineBreakups
+        allLines = addBlanks firsts w
+        allCosts = map (lineBadness c) allLines
+    in case minIndex allCosts of
+        Just x -> Just (allLines !! x)
+        Nothing -> Nothing
+
+line2 = [Word"He",Word"who",Word"controls"]
+lineBreakups = (lineBreaks enHyp 12 line2)
+firsts = map fst lineBreakups
+-- main = putStr $ show $ map (lineBadness cost) (addBlanks firsts 12)
+main = putStr $ show $ bestLineBreak cost enHyp 12 line2
+-- main = putStr $ show $ (map (lineBadness cost) firsts)
+-- main = putStr $ show $ zip (zipWith (+) (map fromIntegral (map ((12-).lineLen) firsts)) (map (lineBadness cost) firsts)) firsts
+
+-- main = putStr $ show $ map ((lineBadness cost).fst) lineWithBlanks
