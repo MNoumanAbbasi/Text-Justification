@@ -136,6 +136,10 @@ var xs = avg (map ((^2).subtract (avg xs)) xs)
 
 data Costs = Costs Double Double Double Double deriving (Eq,Show)
 
+-- | Computes cost of introducing blanks in a line
+blankCost :: [Token] -> Double
+blankCost xs = fromIntegral (length.filter (==Blank) $ xs)
+
 -- | Computes the blankProxCost (no. of tokens minus average blank distances)
 blankProxCost :: [Token] -> Double
 blankProxCost = \line ->
@@ -143,15 +147,22 @@ blankProxCost = \line ->
         0 -> 0.0              -- in case of 0 blanks
         _ -> fromIntegral (length line) - (avg (map fromIntegral (blankDistances line)))
 
+-- | Computes the cost of having blanks spread unevenly
+blankUnevenCost :: [Token] -> Double
+blankUnevenCost xs = var (map fromIntegral (blankDistances line))
+
+-- | Computes the cost of hyphenating the last word in a line
 hypCost :: [Token] -> Double
 hypCost xs = case last xs of
     HypWord x -> 1.0
     _ -> 0.0
 
 -- | Computes the score of a line based on given cost
--- lineBadness :: Costs -> [Token] -> Double
--- lineBadness = \costs -> \line ->
---     Costs (length.filter (==Blank) line) (blankProxCost line) (var (blankDistances line)) (hypCost line)
+lineBadness :: Costs -> [Token] -> Double
+lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
+    c1*(blankCost line) + c2*(blankProxCost line) + c3*(blankUnevenCost line) + c4*(hypCost line)
 
 line = [Word "He",Blank,Word "who",Word "controls"]
-main = putStr $ show $ blankProxCost line
+cost = Costs 1.0 1.0 1.0 1.0
+-- main = putStr $ show $ lineBadness cost line
+main = putStr $ show $ (blankCost line, blankProxCost line, blankUnevenCost line, hypCost line)
