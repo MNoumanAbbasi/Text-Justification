@@ -78,16 +78,6 @@ hyphenate = \hypMap -> \token ->
         Word w | (not.isAlpha) (last w) -> map (word2HypToken [last w]) (mergers (findHyp4Word hypMap (init w)))
         Word w -> map (word2HypToken "") (mergers (findHyp4Word hypMap w))
 
--- | Merge line and its hyphenated form (Used as helper functions in lineBreaks)
-line2Hyph :: ([Token], [Token]) -> (Token, Token) -> ([Token], [Token])
-line2Hyph = \(line1 , line2) -> \(hyp, word) -> (line1 ++ [hyp], [word])
-
--- | Breaks a line into its hyphenated verison
--- lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
--- lineBreaks = \hypMap -> \w -> \line ->
---     let x = breakLine w line
---     in filter ((<=w).lineLen.fst) (x:(map (line2Hyph x) (hyphenate enHyp (last line))))
-
 -- | Breaks a line into its hyphenated verison
 lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
 lineBreaks = \hypMap -> \w -> \line ->
@@ -189,13 +179,11 @@ addBlanks = \pairOfLines -> \w ->
         (a,b):xs | (lineLen a) == w -> [(a,b)] ++ addBlanks xs w
         (a,b):xs -> (list2tuples (insertBlanks (w - lineLen a) a) b) ++ addBlanks xs w
 
--- main = putStr $ show $ addBlanks (lineBreaks enHyp 8 (str2line "Hewho")) 8
-
--- -- | Find the index of minimum element in list
+-- | Find the index of minimum element in list
 minIndex :: [Double] -> Maybe Int
 minIndex xs = elemIndex (minimum xs) xs
 
--- -- | Computes the best line break given the costs, hyphenation map, and the maximum line width
+-- | Computes the best line break given the costs, hyphenation map, and the maximum line width
 bestLineBreak :: Costs -> [(String, [String])] -> Int -> [Token] -> Maybe ([Token],[Token])
 bestLineBreak = \c -> \hypMap -> \w -> \line ->
     let lineBreakups = lineBreaks hypMap w line
@@ -205,16 +193,14 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
 
-text1 = "controls the past controls the future. He who controls the present controls the past."
-fut = "future."
-w = 15
-lin = str2line text
-lineBreakups = lineBreaks enHyp w lin
-allLines = addBlanks lineBreakups w
-allCosts = map ((lineBadness defaultCosts).fst) allLines
--- main = putStr $ show $ lineBreakups
-
--- main = putStr $ show $ bestLineBreak defaultCosts enHyp 12 (str2line text)
+-- text1 = "controls the past controls the future. He who controls the present controls the past."
+-- fut = "future."
+-- w = 15
+-- lin = str2line text
+-- lineBreakups = lineBreaks enHyp w lin
+-- allLines = addBlanks lineBreakups w
+-- allCosts = map ((lineBadness defaultCosts).fst) allLines
+-- -- main = putStr $ show $ lineBreakups
 
 -- | Justifies the line based on HypMap and given width
 justifyLine :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
@@ -227,12 +213,11 @@ justifyLine = \c -> \hypMap -> \w -> \line ->
                 _ -> [fstLine] ++ (justifyLine c hypMap w remLine)
         Nothing -> [line]                                           -- TODO If not justifible, return complete list
 
-text = "He who controls the past controls the future. He who controls the present controls the past."
-
 -- | Justifies a string and returns a list of strings
 justifyText :: Costs -> [(String, [String])] -> Int -> String -> [String]
 justifyText = \c -> \hypMap -> \w -> \text ->
     map line2str (justifyLine c hypMap w (str2line text))
-
--- main = putStr $ show $ justifyText defaultCosts enHyp 15 text
+            
+text = "He who controls the past controls the future. He who controls the present controls the past."
+main = putStr $ show $ justifyText defaultCosts enHyp 15 text
 
