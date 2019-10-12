@@ -87,7 +87,7 @@ lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
 lineBreaks = \hypMap -> \w -> \line ->
     let x = breakLine w line
     in filter ((<=w).lineLen.fst) (x:(map (line2Hyph x) (hyphenate enHyp (last line))))
--- main = putStr $ show $ lineBreaks enHyp 12 [Word "He",Word "who",Word "controls"]
+main = putStr $ show $ lineBreaks enHyp 12 [Word "He",Word "who",Word "controls"]
 
 -- | Insertion helper function (starts is an accumulator)
 insertionsHelper :: a -> [a] -> [a] -> [[a]]
@@ -150,7 +150,7 @@ blankProxCost = \line ->
 
 -- | Computes the cost of having blanks spread unevenly
 blankUnevenCost :: [Token] -> Double
-blankUnevenCost xs = var (map fromIntegral (blankDistances line))
+blankUnevenCost xs = var (map fromIntegral (blankDistances xs))
 
 -- | Computes the cost of hyphenating the last word in a line
 hypCost :: [Token] -> Double
@@ -163,7 +163,7 @@ lineBadness :: Costs -> [Token] -> Double
 lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
     c1*(blankCost line) + c2*(blankProxCost line) + c3*(blankUnevenCost line) + c4*(hypCost line)
 
-line = [Word "He",Blank,Word "who",Word "controls"]
+-- line = [Word "He",Blank,Word "who",Word "controls"]
 defaultCosts = Costs 1.0 1.0 1.0 1.0
 -- main = putStr $ show $ lineBadness defaultCosts line
 -- main = putStr $ show $ (blankCost line, blankProxCost line, blankUnevenCost line, hypCost line)
@@ -192,4 +192,17 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
         
-main = putStr $ show $ bestLineBreak defaultCosts enHyp 12 [Word"He",Word"who",Word"controls"]
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp 8 [Word"He",Word"who",Word"controls"]
+
+-- | Justifies the line based on HypMap and given width
+justifyLine :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
+justifyLine = \c -> \hypMap -> \w -> \line ->
+    case bestLineBreak c hypMap w line of
+        Just (fstLine, remLine) -> [fstLine] ++ (justifyLine c hypMap w remLine)
+        Nothing -> []
+
+text = "future. He who controls the present controls the past."
+fut = "future."
+-- main = putStr $ show $ justifyLine defaultCosts enHyp 8 (str2line text)
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp 8 (str2line text)
+-- main = putStr $ show $ lineLen (str2line fut)
