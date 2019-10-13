@@ -137,7 +137,6 @@ insertBlanks = \n -> \line ->
     case n of
         _ | (length line) == 1 -> [line]
         _ | n<=0 -> [line]
-        -- 1 -> removeDups.removeUnnBlanks $ insertions Blank line
         _ -> removeDups.removeUnnBlanks $ concat ((map (insertions Blank)) (insertBlanks (n-1) line))
 -- main = putStr $ show $ insertBlanks 1 [Word "He",Word "who",Word "controls"]
 
@@ -176,8 +175,7 @@ blankProxCost = \line ->
     case (length.filter (==Blank) $ line) of
         0 -> 0.0              -- in case of 0 blanks
         _ -> fromIntegral (length line) - (avg (map fromIntegral (blankDistances line)))
--- badLine = [Word "He",Blank,Blank,Word "who",Blank,Blank,HypWord "control"]
--- main = putStr $ show $ (map fromIntegral (blankDistances badLine))
+
 -- | Computes the cost of having blanks spread unevenly
 blankUnevenCost :: [Token] -> Double
 blankUnevenCost xs = var (map fromIntegral (blankDistances xs))
@@ -205,9 +203,7 @@ list2tuples = \list -> \line -> [(a,line) | a <- list]
 addBlanks :: [([Token],[Token])] -> Int -> [([Token],[Token])]
 addBlanks = \pairOfLines -> \w ->
     case pairOfLines of
-        -- [(a,b)] | (lineLen a) == (w-1) -> (list2tuples (insertBlanks 1 a) b)
         [(a,b)] -> list2tuples (insertBlanks (w - lineLen a) a) b
-        -- (a,b):xs | (lineLen a) == w -> (list2tuples (insertBlanks 1 a) b) ++ addBlanks xs w
         (a,b):xs -> (list2tuples (insertBlanks (w - lineLen a) a) b) ++ addBlanks xs w
 
 -- | Find the index of minimum element in list
@@ -223,17 +219,6 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
     in case minIndex allCosts of
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
-
--- line2 = [Word "sent",Word "controls",Word "the",Word "past."]
--- -- line2 = str2line text
--- -- main = putStr $ show $ bestLineBreak defaultCosts enHyp 15 line2
--- text1 = "the past controls the future. He who controls the present controls the past."
--- -- -- fut = "future."
--- w = 15
--- lin = str2line text1
--- lineBreakups = lineBreaks enHyp w lin
--- allLines = addBlanks lineBreakups w
--- allCosts = map ((lineBadness defaultCosts).fst) allLines
 -- main = putStr $ show $ bestLineBreak defaultCosts enHyp 12 [Word"He",Word"who",Word"controls"]
 
 ---------------- | PART 15 | ----------------
@@ -244,7 +229,7 @@ justifyLineRec = \c -> \hypMap -> \w -> \line ->
     case bestLineBreak c hypMap w line of
         Just (fstLine, remLine) ->
             case remLine of
-                -- [] -> [fstLine]
+                [] -> [fstLine]
                 _ | (lineLen remLine) <= w -> [fstLine] ++ [remLine]         -- for last line
                 _ -> [fstLine] ++ (justifyLineRec c hypMap w remLine)
         Nothing -> []
