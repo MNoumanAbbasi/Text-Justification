@@ -1,6 +1,9 @@
 import Data.List
 import Data.Char
 data Token = Word String | Blank | HypWord String deriving (Eq,Show)
+text = "He who controls the past controls the future. He who controls the present controls the past."
+
+---------------- | PART 1 | ----------------
 
 -- | Converts a word into a token
 word2token :: String -> Token
@@ -10,6 +13,9 @@ word2token = \word -> Word word
 str2line :: String -> [Token]   -- Line is a list of Token
 str2line = \str ->
     map word2token (words str)
+-- main = putStr $ show $ str2line text
+
+---------------- | PART 2 | ----------------
 
 -- | Converts a token into a word
 token2word :: Token -> String
@@ -17,12 +23,14 @@ token2word = \token ->
     case token of
         Word str -> str
         HypWord str -> str ++ "-"
-        Blank -> " "
+        Blank -> ""
 
 -- | Converts a Line back into a string
 line2str :: [Token] -> String
 line2str = \line ->
     unwords (map token2word line)
+
+---------------- | PART 3 | ----------------
 
 -- | Computes the length of a token
 tokLen :: Token -> Int
@@ -32,12 +40,16 @@ tokLen = \token ->
         HypWord str -> 1 + length str
         Blank -> 1
 
+---------------- | PART 4 | ----------------
+
 -- | Computes the length of a Line
 lineLen :: [Token] -> Int
 lineLen = \line -> 
     let listOfLengths = map tokLen line
     in sum listOfLengths + (length listOfLengths) - 1        
 -- main = putStr $ show $ lineLen [Word "He",Word "who",HypWord "con"]
+
+---------------- | PART 5 | ----------------
 
 -- | Breaks Line into multiple lengths based on given width
 breakLine :: Int -> [Token] -> ([Token], [Token])
@@ -49,6 +61,8 @@ breakLine = \w -> \line ->
         _ -> ([], line)
 -- main = putStr $ show $ breakLine 6 [Word "He",Word "who",Word "controls"]
 
+---------------- | PART 6 | ----------------
+
 -- | Given parts of a word, produces a pair of all possible ways to break up the word.
 mergers :: [String] -> [(String, String)]
 mergers = \list ->
@@ -56,6 +70,8 @@ mergers = \list ->
         x:y:xs -> [(x, concat (y:xs))] ++ mergers ([x ++ y] ++ xs)
         _ -> []
 -- main = putStr $ show $ mergers ["co","nt","ro","ls"]
+
+---------------- | PART 7 | ----------------
 
 -- | Find the string in a list of pairs of word and its breakups
 findHyp4Word :: [(String, [String])] -> String -> [String]
@@ -76,6 +92,8 @@ hyphenate = \hypMap -> \token ->
         Word w | (not.isAlpha) (last w) -> map (word2HypToken [last w]) (mergers (findHyp4Word hypMap (init w)))
         Word w -> map (word2HypToken "") (mergers (findHyp4Word hypMap w))
 
+---------------- | PART 8 | ----------------
+
 -- | Breaks a line into its hyphenated verison
 lineBreaks :: [(String, [String])] -> Int -> [Token] -> [([Token], [Token])]
 lineBreaks = \hypMap -> \w -> \line ->
@@ -85,6 +103,8 @@ lineBreaks = \hypMap -> \w -> \line ->
                  in filter ((<=w).lineLen.fst) ([(x,y:ys)]++temp)
 
 -- main = putStr $ show $ lineBreaks enHyp 12 [Word"He",Word"who",Word"controls",Word"the"]
+
+---------------- | PART 9 | ----------------
 
 -- | Insertion helper function (starts is an accumulator)
 insertionsHelper :: a -> [a] -> [a] -> [[a]]
@@ -97,10 +117,11 @@ insertionsHelper = \c -> \starts -> \str ->
 insertions :: a -> [a] -> [[a]]
 insertions = \c -> \str -> insertionsHelper c [] str
 
+---------------- | PART 10 | ----------------
+
 -- | Removes lines with leading and trailing Blanks from a list
 removeUnnBlanks :: [[Token]] -> [[Token]]
-removeUnnBlanks = \list ->
-    filter ((/=Blank).last) $ filter ((/=Blank).head) list
+removeUnnBlanks = \list -> filter ((/=Blank).last) $ filter ((/=Blank).head) list
 
 -- | Remove duplicate lines
 removeDups :: [[Token]] -> [[Token]]
@@ -112,9 +133,11 @@ insertBlanks = \n -> \line ->
     case n of
         _ | (length line) == 1 -> [line]
         _ | n<=0 -> [line]
-        1 -> removeDups.removeUnnBlanks $ insertions Blank line
+        -- 1 -> removeDups.removeUnnBlanks $ insertions Blank line
         _ -> removeDups.removeUnnBlanks $ concat ((map (insertions Blank)) (insertBlanks (n-1) line))
 -- main = putStr $ show $ insertBlanks 2 [Word "He",Word "who",Word "controls"]
+
+---------------- | PART 11 | ----------------
 
 -- | Computes the distances between inserted blanks, counted in number of inbetween token
 blankDistances :: [Token] -> [Int]
@@ -124,6 +147,8 @@ blankDistances = \line ->
         (first, rem) -> [length first] ++ blankDistances (tail rem)
 -- main = putStr $ show $ blankDistances [Word "He",Blank,Blank,Word "who",Word "controls"]
 
+---------------- | PART 12 | ----------------
+
 -- | Computes the average of values in a list
 avg :: [Double] -> Double
 avg xs = sum xs / (fromIntegral (length xs))
@@ -131,6 +156,8 @@ avg xs = sum xs / (fromIntegral (length xs))
 -- | Computes the variance of values in a list
 var :: [Double] -> Double
 var xs = avg (map ((^2).subtract (avg xs)) xs)
+
+---------------- | PART 13 | ----------------
 
 data Costs = Costs Double Double Double Double deriving (Eq,Show)
 
@@ -161,9 +188,11 @@ lineBadness :: Costs -> [Token] -> Double
 lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
     c1*(blankCost line) + c2*(blankProxCost line) + c3*(blankUnevenCost line) + c4*(hypCost line)
 
--- badLine1 = [Word "He",Blank,Blank,Word "who",Word "control"]
+badLine1 = [Word "He",Blank,Blank,Word "who",Word "control"]
 -- main = putStr $ show $ lineBadness defaultCosts badLine1
 -- main = putStr $ show $ (blankCost badLine1, blankProxCost badLine1, blankUnevenCost badLine1, hypCost badLine1)
+
+---------------- | PART 14 | ----------------
 
 -- | Helper function to convert a list of lines to list of tuples of lines
 list2tuples :: [[Token]] -> [Token] -> [([Token],[Token])]
@@ -172,8 +201,9 @@ list2tuples = \list -> \line -> [(a,line) | a <- list]
 addBlanks :: [([Token],[Token])] -> Int -> [([Token],[Token])]
 addBlanks = \pairOfLines -> \w ->
     case pairOfLines of
-        [(a,b)] -> list2tuples (insertBlanks ((w-1) - lineLen a) a) b
-        (a,b):xs | (lineLen a) == w -> [(a,b)] ++ addBlanks xs w
+        -- [(a,b)] | (lineLen a) == (w-1) -> (list2tuples (insertBlanks 1 a) b)
+        [(a,b)] -> list2tuples (insertBlanks (w - lineLen a) a) b
+        -- (a,b):xs | (lineLen a) == w -> (list2tuples (insertBlanks 1 a) b) ++ addBlanks xs w
         (a,b):xs -> (list2tuples (insertBlanks (w - lineLen a) a) b) ++ addBlanks xs w
 
 -- | Find the index of minimum element in list
@@ -190,17 +220,19 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
 
--- line2 = [Word "sent",Word "controls",Word "the",Word "past."]
+line2 = [Word "sent",Word "controls",Word "the",Word "past."]
 -- line2 = str2line text
--- -- main = putStr $ show $ bestLineBreak defaultCosts enHyp 15 line2
--- -- text1 = "controls the past controls the future. He who controls the present controls the past."
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp 15 line2
+text1 = "the past controls the future. He who controls the present controls the past."
 -- -- fut = "future."
--- w = 15
--- -- lin = str2line text
--- lineBreakups = lineBreaks enHyp w [Word "the",Word "past",Word "controls",Word "the",Word "future.",Word "He",Word "who",Word "controls",Word "the",Word "present",Word "controls",Word "the",Word "past."]
--- allLines = addBlanks lineBreakups w
--- allCosts = map ((lineBadness defaultCosts).fst) allLines
--- -- main = putStr $ show $ allLines
+w = 15
+lin = str2line text1
+lineBreakups = lineBreaks enHyp w lin
+allLines = addBlanks lineBreakups w
+allCosts = map ((lineBadness defaultCosts).fst) allLines
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp w lin 
+
+---------------- | PART 15 | ----------------
 
 -- | Recursive helper function for justifyLine
 justifyLineRec :: Costs -> [(String, [String])] -> Int -> [Token] -> [[Token]]
@@ -228,6 +260,5 @@ justifyText = \c -> \hypMap -> \w -> \text ->
 
 enHyp = [("controls",["co","nt","ro","ls"]), ("future",["fu","tu","re"]),("present",["pre","se","nt"])]
 defaultCosts = Costs 1.0 1.0 1.0 1.0
-text = "He who controls the past controls the future. He who controls the present controls the past."
 -- main = putStr $ show $ justifyLine defaultCosts enHyp 15 (str2line text)
-main = putStr $ unlines $ justifyText defaultCosts enHyp 15 text
+-- main = putStr $ unlines $ justifyText defaultCosts enHyp 15 text
