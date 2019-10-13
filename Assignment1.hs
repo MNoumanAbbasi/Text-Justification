@@ -2,6 +2,8 @@ import Data.List
 import Data.Char
 data Token = Word String | Blank | HypWord String deriving (Eq,Show)
 text = "He who controls the past controls the future. He who controls the present controls the past."
+enHyp = [("controls",["co","nt","ro","ls"]), ("future",["fu","tu","re"]),("present",["pre","se","nt"])]
+defaultCosts = Costs 1.0 1.0 1.0 1.0
 
 ---------------- | PART 1 | ----------------
 
@@ -29,6 +31,7 @@ token2word = \token ->
 line2str :: [Token] -> String
 line2str = \line ->
     unwords (map token2word line)
+-- main = putStr $ show $ line2str (str2line text) == text
 
 ---------------- | PART 3 | ----------------
 
@@ -91,6 +94,7 @@ hyphenate = \hypMap -> \token ->
     case token of       -- first case is if trailing punctuation present and second case is otherwise
         Word w | (not.isAlpha) (last w) -> map (word2HypToken [last w]) (mergers (findHyp4Word hypMap (init w)))
         Word w -> map (word2HypToken "") (mergers (findHyp4Word hypMap w))
+-- main = putStr $ show $ hyphenate enHyp (Word"future.")
 
 ---------------- | PART 8 | ----------------
 
@@ -101,8 +105,7 @@ lineBreaks = \hypMap -> \w -> \line ->
         (x,[]) -> [(x,[])]
         (x,y:ys) -> let temp = [(x++[a], [b]++ys) | (a,b) <- (hyphenate enHyp y)]
                  in filter ((<=w).lineLen.fst) ([(x,y:ys)]++temp)
-
--- main = putStr $ show $ lineBreaks enHyp 12 [Word"He",Word"who",Word"controls",Word"the"]
+-- main = putStr $ show $ lineBreaks enHyp 12 [Word"He",Word"who",Word"controls"]
 
 ---------------- | PART 9 | ----------------
 
@@ -116,6 +119,7 @@ insertionsHelper = \c -> \starts -> \str ->
 -- | Inserts a given variable at every possible place in a string
 insertions :: a -> [a] -> [[a]]
 insertions = \c -> \str -> insertionsHelper c [] str
+-- main = putStr $ show $ insertions 'x' "abcd"
 
 ---------------- | PART 10 | ----------------
 
@@ -135,7 +139,7 @@ insertBlanks = \n -> \line ->
         _ | n<=0 -> [line]
         -- 1 -> removeDups.removeUnnBlanks $ insertions Blank line
         _ -> removeDups.removeUnnBlanks $ concat ((map (insertions Blank)) (insertBlanks (n-1) line))
--- main = putStr $ show $ insertBlanks 2 [Word "He",Word "who",Word "controls"]
+-- main = putStr $ show $ insertBlanks 1 [Word "He",Word "who",Word "controls"]
 
 ---------------- | PART 11 | ----------------
 
@@ -156,6 +160,7 @@ avg xs = sum xs / (fromIntegral (length xs))
 -- | Computes the variance of values in a list
 var :: [Double] -> Double
 var xs = avg (map ((^2).subtract (avg xs)) xs)
+-- main = putStr $ show $ var [1,0,2]
 
 ---------------- | PART 13 | ----------------
 
@@ -188,8 +193,7 @@ lineBadness :: Costs -> [Token] -> Double
 lineBadness = \(Costs c1 c2 c3 c4) -> \line ->
     c1*(blankCost line) + c2*(blankProxCost line) + c3*(blankUnevenCost line) + c4*(hypCost line)
 
-badLine1 = [Word "He",Blank,Blank,Word "who",Word "control"]
--- main = putStr $ show $ lineBadness defaultCosts badLine1
+-- main = putStr $ show $ lineBadness defaultCosts [Word"He",Blank,Word"who",Word"controls"]
 -- main = putStr $ show $ (blankCost badLine1, blankProxCost badLine1, blankUnevenCost badLine1, hypCost badLine1)
 
 ---------------- | PART 14 | ----------------
@@ -220,17 +224,17 @@ bestLineBreak = \c -> \hypMap -> \w -> \line ->
         Just x -> Just (allLines !! x)
         Nothing -> Nothing
 
-line2 = [Word "sent",Word "controls",Word "the",Word "past."]
--- line2 = str2line text
--- main = putStr $ show $ bestLineBreak defaultCosts enHyp 15 line2
-text1 = "the past controls the future. He who controls the present controls the past."
--- -- fut = "future."
-w = 15
-lin = str2line text1
-lineBreakups = lineBreaks enHyp w lin
-allLines = addBlanks lineBreakups w
-allCosts = map ((lineBadness defaultCosts).fst) allLines
--- main = putStr $ show $ bestLineBreak defaultCosts enHyp w lin 
+-- line2 = [Word "sent",Word "controls",Word "the",Word "past."]
+-- -- line2 = str2line text
+-- -- main = putStr $ show $ bestLineBreak defaultCosts enHyp 15 line2
+-- text1 = "the past controls the future. He who controls the present controls the past."
+-- -- -- fut = "future."
+-- w = 15
+-- lin = str2line text1
+-- lineBreakups = lineBreaks enHyp w lin
+-- allLines = addBlanks lineBreakups w
+-- allCosts = map ((lineBadness defaultCosts).fst) allLines
+-- main = putStr $ show $ bestLineBreak defaultCosts enHyp 12 [Word"He",Word"who",Word"controls"]
 
 ---------------- | PART 15 | ----------------
 
@@ -257,8 +261,5 @@ justifyText :: Costs -> [(String, [String])] -> Int -> String -> [String]
 justifyText = \c -> \hypMap -> \w -> \text ->
     map line2str (justifyLine c hypMap w (str2line text))
 
-
-enHyp = [("controls",["co","nt","ro","ls"]), ("future",["fu","tu","re"]),("present",["pre","se","nt"])]
-defaultCosts = Costs 1.0 1.0 1.0 1.0
 -- main = putStr $ show $ justifyLine defaultCosts enHyp 15 (str2line text)
--- main = putStr $ unlines $ justifyText defaultCosts enHyp 15 text
+main = putStr $ unlines $ justifyText defaultCosts enHyp 15 text
