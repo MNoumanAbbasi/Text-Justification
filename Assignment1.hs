@@ -1,3 +1,7 @@
+--      CS 300 - Module: Functional Programming using Haskell
+--  Assignment 1
+--  @author Nouman Abbasi
+
 import Data.List
 import Data.Char
 data Token = Word String | Blank | HypWord String deriving (Eq,Show)
